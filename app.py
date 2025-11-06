@@ -572,73 +572,78 @@ elif page == "4️⃣ Chatbot":
     """)
     st.markdown('</div>', unsafe_allow_html=True)
 
+    # Initialize chat messages in session state
     if "messages" not in st.session_state:
         st.session_state.messages = [
             {
                 "role": "assistant",
-                "content": "Hello! 👋 I'm your AI assistant for the Predictive Maintenance System. Ask me anything about RUL prediction, BiLSTM models, maintenance alerts, or sensor data analysis!"
+                "content": (
+                    "Hello! 👋 I'm your AI assistant for the Predictive Maintenance System. "
+                    "Ask me anything about RUL prediction, BiLSTM models, maintenance alerts, or sensor data analysis!"
+                )
             }
         ]
 
+    # Display previous chat messages
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
 
+    # Chat input
     if prompt := st.chat_input("Ask a question..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
+        # Assistant response
         with st.chat_message("assistant"):
             with st.spinner("Thinking..."):
                 try:
-                    tavily_api_key = st.secrets["TAVILY_API_KEY"]
+                    # ✅ Load Tavily API key from Streamlit secrets
+                    tavily_api_key = st.secrets["tavily"]["api_key"]
                     tavily_client = TavilyClient(api_key=tavily_api_key)
 
-                    # Short query to avoid 400 char limit
+                    # Short query to avoid exceeding API limits
                     query = f"{prompt} predictive maintenance RUL BiLSTM"
                     query = query[:350]
 
                     response = tavily_client.search(query=query, max_results=1)
-
-                    # ✅ Start crafting proper answer
+                    
+                    # Crafting answer based on keywords
                     answer = ""
+                    prompt_lower = prompt.lower()
 
-                    if "rul" in prompt.lower():
+                    if "rul" in prompt_lower:
                         answer += (
                             "**Remaining Useful Life (RUL)** tells how many cycles an engine can run "
                             "before failure. It helps schedule maintenance early to avoid breakdowns.\n\n"
                         )
-
-                    if "machine" in prompt.lower() or "ml" in prompt.lower():
+                    if "machine" in prompt_lower or "ml" in prompt_lower:
                         answer += (
                             "**Machine Learning (ML)** helps computers learn from past data instead of "
                             "being manually programmed with rules. In RUL prediction, models learn "
                             "patterns from sensor data to forecast engine health.\n\n"
                         )
-
-                    if "bilstm" in prompt.lower() or "lstm" in prompt.lower():
+                    if "bilstm" in prompt_lower or "lstm" in prompt_lower:
                         answer += (
                             "**BiLSTM (Bidirectional LSTM)** reads engine sensor sequences both forward "
                             "and backward. This helps it understand degradation patterns better, "
                             "improving prediction accuracy.\n\n"
                         )
-
-                    if "alert" in prompt.lower():
+                    if "alert" in prompt_lower:
                         answer += (
                             "**Maintenance Alerts**\n"
                             "- 🚨 Critical: RUL ≤ 20 cycles → Immediate service\n"
                             "- ⚠️ Warning: RUL ≤ 40 cycles → Schedule soon\n"
                             "- ✅ Normal: RUL > 40 cycles → No action required\n\n"
                         )
-
-                    if "sensor" in prompt.lower() or "feature" in prompt.lower():
+                    if "sensor" in prompt_lower or "feature" in prompt_lower:
                         answer += (
                             "Our model uses **20 sensor features**, including temperature, pressure, "
                             "and vibration readings to evaluate engine health.\n\n"
                         )
 
-                    # ✅ If nothing matched above, give a general fallback
+                    # Fallback for unrecognized queries
                     if not answer:
                         answer = (
                             "I can help you with questions about RUL, predictive maintenance, BiLSTM "
@@ -649,6 +654,7 @@ elif page == "4️⃣ Chatbot":
                     st.session_state.messages.append({"role": "assistant", "content": answer})
 
                 except Exception as e:
+                    # Fallback mode
                     fallback_msg = (
                         "I can help with questions on:\n\n"
                         "✅ What is RUL?\n"
